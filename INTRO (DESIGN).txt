@@ -1,1 +1,52 @@
+Design Document: SimpleLoader Implementation
 
+## Introduction
+
+This document details the implementation of the SimpleLoader, a utility designed to load and run ELF (Executable and Linkable Format) files using the C programming language. This document outlines the contributions of each team member, provides an overview of the SimpleLoader implementation, and includes the link to the private GitHub repository where the assignment is hosted.
+
+## Contributors
+
+- Nikhil Kumar (2022322):
+  - Contribution: Wrote the code for the implementation of loader.c and committed all files to git repo, and made the documentation of it.
+- Nikhil (2022321):
+  - Contribution: Did the error handling part of the loader.c and helped in debugging issues.
+
+
+## SimpleLoader Implementation
+
+### Overview
+
+The SimpleLoader is designed to load and execute ELF files using the C programming language. It consists of the following main components:
+
+1. loader.h: This header file defines the necessary data structures and header files  for the loader.
+
+2. loader.c: This source file contains the implementation of the loader, including memory allocation, ELF header parsing, program header processing, memory mapping, and execution.
+
+3. fib.c: This is a simple test code provided to us.
+
+4. Makefile: A makefile that contains the command to compile the fib.c and loader.c .
+
+### Loader Functions
+
+#### void load_and_run_elf(char **exe)
+
+This function is responsible for loading and executing the ELF file. It follows these steps:
+
+1. Open the ELF file specified as a command-line argument.
+2. Read the ELF header to retrieve the necessary information.
+3. Allocate memory for the ELF header and program headers.
+4. Read the program headers.
+5. Iterate through the program headers and load the loadable segments into memory using `mmap`.
+6. Call the entry point of the loaded ELF program.
+7. Print the result obtained from the ELF program execution.
+
+#### void loader_cleanup()
+
+This function performs necessary cleanup operations:
+
+1. Free memory allocated for ELF header and program headers.
+2. Close the file descriptor used for the ELF file.
+
+## GitHub Repository
+
+The code for the SimpleLoader implementation is hosted in a private GitHub repository. To access the code and related materials, please use the following link: https://github.com/Nikhil190804/OS-Assignments
