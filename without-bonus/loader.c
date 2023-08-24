@@ -17,6 +17,7 @@ void loader_cleanup() {
   if(sizeof(phdr)>=0){
     free(phdr);
   }
+  close(fd);
 }
 
 /*
