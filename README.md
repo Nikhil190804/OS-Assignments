@@ -6,3 +6,4 @@ Team Members:-
 2) Nikhil - 2022321
 
 We have only done the without-bonus part, i.e.- implementation of loader.c .
+Checkout the INTRO (DESIGN).txt file for complete details about the project.
