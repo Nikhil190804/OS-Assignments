@@ -1,0 +1,23 @@
+it is just a random file for testing main.c
+it has simple text
+it is created with main.c
+i am using file.txt in testing
+hello world
+hello world
+hello world
+hello world
+i think i should get full marks in this assignment
+this is easy 
+easy
+easy
+done by nikhil
+done by nikhil
+2022322
+2022321
+ok it ends here
+end
+end
+end
+end
+end
+
