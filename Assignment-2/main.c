@@ -1,15 +1,15 @@
 // list all the libs used
-#include <stdio.h>
-#include <stdlib.h>
+#include <sys/resource.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
+#include <sys/time.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <time.h>
 #include <stdbool.h>
 #include <signal.h>
-#include <sys/resource.h>
-#include <sys/time.h>
-#include <time.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 // define the strcut for the command record
 struct Record_of_Command
@@ -22,30 +22,30 @@ struct Record_of_Command
     int num_command;
 };
 
-//declare global vars here
+// declare global vars here
 int number_of_commands = 0;
 struct Record_of_Command History[6969];
 int record_pid_pipe_command[6969];
-int view_index=0;
-int insert_index=0;
+int view_index = 0;
+int insert_index = 0;
 
 // forward declaration of func
 void ctrl_c_pressed();
-void add_record_to_history(struct Record_of_Command History[], int *number_of_commands, const char *command, pid_t pid, time_t startTime, double duration, double memoryUsage,int num);
+void add_record_to_history(struct Record_of_Command History[], int *number_of_commands, const char *command, pid_t pid, time_t startTime, double duration, double memoryUsage, int num);
 void display_records(struct Record_of_Command History[], int number_of_commands);
 bool search_for_pipe_commands(char *input, size_t len);
 char **parse_the_command(char *commands[], int i);
 int *handle_me(char *input, size_t len);
-double calculate_duration_of_time_intervals(struct timeval startTime,struct timeval endTime);
+double calculate_duration_of_time_intervals(struct timeval startTime, struct timeval endTime);
 double calculate_memory_occupied_during_execution(struct rusage usage);
-bool check_for_validity(char *checker,int input_length);
+bool check_for_validity(char *checker, int input_length);
 
 bool search_for_pipe_commands(char *input, size_t len)
 {
     int index = 0;
     while (index < len)
     {
-        if (input[index]=='|')
+        if (input[index] == '|')
         {
             return true;
         }
@@ -60,14 +60,17 @@ void ctrl_c_pressed()
     printf("\nNow ending it ....\nWith history of each Command..........\n");
     display_records(History, number_of_commands);
     exit(EXIT_SUCCESS);
-
 }
 
-bool check_for_validity(char *checker,int input_length){
-    int i=0;
-    while(i < input_length){
-        if(checker[i]=='c' && i==0){
-            if(checker[i+1]=='d'){
+bool check_for_validity(char *checker, int input_length)
+{
+    int i = 0;
+    while (i < input_length)
+    {
+        if (checker[i] == 'c' && i == 0)
+        {
+            if (checker[i + 1] == 'd')
+            {
                 return true;
             }
         }
@@ -76,7 +79,7 @@ bool check_for_validity(char *checker,int input_length){
     return false;
 }
 
-void add_record_to_history(struct Record_of_Command History[], int *number_of_commands, const char *command, pid_t pid, time_t startTime, double duration, double memoryUsage,int num)
+void add_record_to_history(struct Record_of_Command History[], int *number_of_commands, const char *command, pid_t pid, time_t startTime, double duration, double memoryUsage, int num)
 {
     struct Record_of_Command *record = &History[*number_of_commands];
     strncpy(record->command, command, sizeof(record->command));
@@ -84,7 +87,7 @@ void add_record_to_history(struct Record_of_Command History[], int *number_of_co
     record->startTime = startTime;
     record->duration = duration;
     record->memoryUsage = memoryUsage;
-    record->num_command=num;
+    record->num_command = num;
     (*number_of_commands)++;
 }
 
@@ -95,18 +98,21 @@ void display_records(struct Record_of_Command History[], int number_of_commands)
     {
         printf("--------------------\n");
         printf("Command: %s\n", History[i].command);
-        if(History[i].pid < 0){
+        if (History[i].pid < 0)
+        {
             // pipe command has taken over
-            int loop=History[i].num_command;
+            int loop = History[i].num_command;
             printf("PID: ");
-            for(int j=0;j<loop;j++){
-                printf("%d  ",record_pid_pipe_command[view_index]);
+            for (int j = 0; j < loop; j++)
+            {
+                printf("%d  ", record_pid_pipe_command[view_index]);
                 view_index++;
             }
             printf("\n");
         }
-        else{
-            //normal pid print
+        else
+        {
+            // normal pid print
             printf("PID: %d\n", History[i].pid);
         }
         printf("Start Time: %s", (char *)ctime(&History[i].startTime));
@@ -119,7 +125,7 @@ void display_records(struct Record_of_Command History[], int number_of_commands)
 
 char **parse_the_command(char *commands[], int i)
 {
-    char **result= malloc(2000 * sizeof(char *));
+    char **result = malloc(2000 * sizeof(char *));
     char *arg = strtok(commands[i], " ");
     int counter = 0;
     while (arg != NULL)
@@ -131,9 +137,9 @@ char **parse_the_command(char *commands[], int i)
     return result;
 }
 
-
 int *handle_me(char *input, size_t len)
-{   int *pid_array=calloc(100,sizeof(int));
+{
+    int *pid_array = calloc(100, sizeof(int));
     char *command[2000];
     int num_of_commands = 0;
     char *token = strtok(input, "|");
@@ -143,20 +149,13 @@ int *handle_me(char *input, size_t len)
         token = strtok(NULL, "|");
     }
     int pipes[num_of_commands - 1][2];
-    //int k=0;
-    // while(k < num_of_commands-1){
-    //     if(pipe(pipes[k])==-1){
-    //         printf("\n Pipe Creation Failed!!!");
-    //         exit(1);
-    //     }
-    //     k++;
-    // }
     int input_file = 0;
     for (int i = 0; i < num_of_commands; i++)
     {
         int output_file = 1;
-        int pipe_connections=pipe(pipes[i]);
-        if(pipe_connections==-1){
+        int pipe_connections = pipe(pipes[i]);
+        if (pipe_connections == -1)
+        {
             printf("\nPipe Creation Failed!!!\n");
             exit(1);
         }
@@ -195,31 +194,32 @@ int *handle_me(char *input, size_t len)
                 close(pipes[i][1]);       // Close write end of the pipe
                 input_file = pipes[i][0]; // Set input for the next command to read end of the pipe
             }
-            pid_array[i]=rc;
+            pid_array[i] = rc;
         }
     }
-    int x=0;
-    int y=0;
-    while(x < num_of_commands-1){
+    int x = 0;
+    int y = 0;
+    while (x < num_of_commands - 1)
+    {
         close(pipes[x][0]);
         x++;
     }
-    while(y < num_of_commands-1){
+    while (y < num_of_commands - 1)
+    {
         close(pipes[y][1]);
         y++;
     }
     return pid_array;
 }
 
-
-
-double calculate_duration_of_time_intervals(struct timeval startTime,struct timeval endTime){
+double calculate_duration_of_time_intervals(struct timeval startTime, struct timeval endTime)
+{
     double duration = (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_usec - startTime.tv_usec) / 1000000.0;
     return duration;
 }
 
-
-double calculate_memory_occupied_during_execution(struct rusage usage){
+double calculate_memory_occupied_during_execution(struct rusage usage)
+{
     getrusage(RUSAGE_CHILDREN, &usage);
     double mem;
     mem = (double)usage.ru_maxrss / 1024.0;
@@ -243,36 +243,37 @@ int main()
             input[input_length - 1] = '\0';
         }
         char in[2000];
-        strcpy(in,input);
+        strcpy(in, input);
         char checker[2000];
-        strcpy(checker,input);
-        bool status = check_for_validity(checker,input_length);
-        if(status==true){
+        strcpy(checker, input);
+        bool status = check_for_validity(checker, input_length);
+        if (status == true)
+        {
             printf("Can't execute this command!!!!!\n");
             continue;
         }
         bool result = search_for_pipe_commands(input, input_length);
         if (result == true)
-        {   
+        {
             struct timeval startTime, endTime;
             gettimeofday(&startTime, NULL);
-            int *pid_array=handle_me(input, input_length);
+            int *pid_array = handle_me(input, input_length);
             gettimeofday(&endTime, NULL);
-            int num=0;
-            for(int i=0;pid_array[i]!=0;i++){
-                record_pid_pipe_command[insert_index]=pid_array[i];
+            int num = 0;
+            for (int i = 0; pid_array[i] != 0; i++)
+            {
+                record_pid_pipe_command[insert_index] = pid_array[i];
                 insert_index++;
                 num++;
             }
-            double duration=calculate_duration_of_time_intervals(startTime,endTime);
+            double duration = calculate_duration_of_time_intervals(startTime, endTime);
             struct rusage usage;
             double mem = calculate_memory_occupied_during_execution(usage);
-            add_record_to_history(History,&number_of_commands,in,-1,startTime.tv_sec,duration,mem,num);
+            add_record_to_history(History, &number_of_commands, in, -1, startTime.tv_sec, duration, mem, num);
             free(pid_array);
             continue;
         }
-        // Process the user input
-        int rc = fork();
+        int rc = fork();        // Process the user input
         char *command[2000];
 
         if (rc < 0)
@@ -305,10 +306,10 @@ int main()
             if (WIFEXITED(val))
             {
                 gettimeofday(&end, NULL);
-                double dur = calculate_duration_of_time_intervals(start,end);
+                double dur = calculate_duration_of_time_intervals(start, end);
                 struct rusage usage;
                 double memory = calculate_memory_occupied_during_execution(usage);
-                add_record_to_history(History, &number_of_commands, input, rc, start.tv_sec, dur, memory,0);
+                add_record_to_history(History, &number_of_commands, input, rc, start.tv_sec, dur, memory, 0);
             }
             else
             {
