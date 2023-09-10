@@ -1,0 +1,87 @@
+Design Document: SimpleShell Implementation
+
+## Introduction
+
+This is a custom C shell implementation that allows users to execute both single commands and piped commands. It maintains a history of executed commands, including their process IDs, start times, durations, and memory usage.
+
+## Contributors
+
+- Nikhil Kumar (2022322):
+  - Contribution:  Wrote the code for handling commands involving pipe functions and helped in debugging the code several times , did some part of main func too.
+- Nikhil (2022321):
+  - Contribution: Wrote the code for overall execution (main func) and modified the code for history command.
+
+
+### Table of Contents
+
+1. Dependencies
+2. Compilation
+3. Usage
+4. Features
+5. Code Overview
+
+### Dependencies
+    This C shell code uses standard C libraries and system calls. Ensure that you have a C compiler installed to compile the code. No external libraries or packages are required.
+
+### Compilation
+    To compile the code, follow these steps:
+    1. Open a terminal.
+    2. Navigate to the directory containing the C shell source code file (e.g., main.c).
+    3. Compile the code using gcc:
+        gcc -o main main.c
+    4. The compilation will produce an executable named main
+
+### Usage
+    To run the custom C shell, execute the compiled binary:
+    ./main
+    
+Once the shell is running, you can enter commands and execute them. The shell supports both single commands and piped commands.
+
+
+### Features
+
+1. Execute single commands, e.g.:
+   ls -l
+2. Execute piped commands, e.g.:
+   ls -l | grep ".txt"
+
+Press Ctrl+C to terminate the shell gracefully. The shell will display a history of executed commands before exiting.
+
+The shell maintains a history of executed commands, including their process IDs, start times, durations, and memory usage. You can view the command history at any time.
+
+### Overview
+
+The code consists of the following components:
+
+1. Dependencies: The code includes standard C libraries and system calls for process management, I/O, and time measurement.
+
+2. Struct Definition: Defines a Record_of_Command struct to store information about executed commands.
+
+3. Global Variables: Declares global variables for command history, command counters, and more.
+
+3. Signal Handling: Defines a signal handler for Ctrl+C to gracefully terminate the shell.
+
+4. Command Validation: Checks for a specific command and rejects its execution.
+
+###Function Definitions:
+
+1. add_record_to_history: Adds a record of the executed command to the history.
+
+2. display_records: Displays the command history.
+
+3. search_for_pipe_commands: Checks if a command contains pipes.
+
+4. parse_the_command: Parses a command into individual tokens.
+
+5. handle_me: Handles piped commands and returns an array of process IDs.
+
+6. calculate_duration_of_time_intervals: Calculates the duration between two time intervals.
+
+7. calculate_memory_occupied_during_execution: Calculates memory usage during command execution.
+
+8. Main Function: The main function handles user input, executes commands, and manages the shell's operation. It also includes a loop that continuously accepts user input until Ctrl+C is pressed.### Loader Functions
+
+
+## GitHub Repository
+
+The code for the SimpleLoader implementation is hosted in a private GitHub repository. To access the code and related materials, please use the following link: https://github.com/Nikhil190804/OS-Assignments
