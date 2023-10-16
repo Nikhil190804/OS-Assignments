@@ -19,7 +19,7 @@
 pid_t scheduler_pid;
 volatile sig_atomic_t alarm_triggered = 0;
 bool start_loop = false;
-
+// Structure to store the history of executed processes
 struct my_history
 {
     char my_name[MAX_STRING_LENGTH];
@@ -29,13 +29,13 @@ struct my_history
     struct timeval end_time;
     int flag;
 };
-
+// Structure for shared memory containing strings
 struct SharedHistory
 {
     struct my_history array[MAX_STRINGS];
     int index_pointer;
 };
-
+// Structure for shared history of executed processes
 struct SharedMemory
 {
     char strings[MAX_STRINGS][MAX_STRING_LENGTH];
@@ -46,6 +46,7 @@ struct SharedMemory
 
 void terminator();
 
+// Define a structure for a queue of process IDs
 struct SharedMemory *create_shared_memory()
 {
     int shm_fd;
@@ -70,7 +71,7 @@ struct SharedMemory *create_shared_memory()
     shared_mem->terminating_flag = 0;
     return shared_mem;
 }
-
+// Function to create an empty string queue
 struct SharedHistory *create_shared_history()
 {
     int shm_fd;
@@ -118,16 +119,17 @@ void shell_signal_handler(int signum)
         // exit(EXIT_SUCCESS);
     }
 }
+// Function to check if the string queue is empty
 struct SharedHistory *shared_history;
 struct SharedMemory *shared_mem;
-
+//func to calculate wait time
 long int calculate_wait_time(struct timeval start_time, struct timeval end_time)
 {
     long int start_time_ms = start_time.tv_sec * 1000 + start_time.tv_usec / 1000;
     long int end_time_ms = end_time.tv_sec * 1000 + end_time.tv_usec / 1000;
     return end_time_ms - start_time_ms;
 }
-
+//func to print history
 void i_will_print_history()
 {
     int number_of_inputs = shared_history->index_pointer;
@@ -150,7 +152,7 @@ void i_will_print_history()
         printf("--------------------\n");
     }
 }
-
+//func to terminate this
 void terminator()
 {
     start_loop = false;
@@ -166,7 +168,7 @@ void terminator()
     shm_unlink("/my_shared_history");
     exit(0);
 }
-
+//main func here
 int main(int argc, char **argv)
 {
     if (argc != 3)

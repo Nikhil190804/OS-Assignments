@@ -11,15 +11,15 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-
+// Define constants
 #define MAX_STRINGS 1000
 #define MAX_STRING_LENGTH 100
 #define SHARED_MEM_SIZE (MAX_STRINGS * MAX_STRING_LENGTH)
-
 pid_t scheduler_pid;
 volatile sig_atomic_t alarm_triggered = 0;
 bool start_loop = false;
 
+// Define a structure to hold the history of executed commands
 struct my_history{
     char my_name[MAX_STRING_LENGTH];
     pid_t my_pid;
@@ -28,21 +28,22 @@ struct my_history{
     struct timeval end_time;
     int flag;
 };
-
+// Define a structure to hold an array of command history
 struct SharedHistory{
     struct my_history array[MAX_STRINGS];
     int index_pointer;
     
 };
 
+// Define a structure for shared memory to store command history
 struct SharedMemory {
     char strings[MAX_STRINGS][MAX_STRING_LENGTH];
     int index;
     int terminating_flag;
 };
-
+// Function to handle termination of the shell
 void terminator();
-
+// Function to create and initialize shared memory for command history
 struct SharedMemory *create_shared_memory() {
     int shm_fd;
     struct SharedMemory *shared_mem;
@@ -64,7 +65,7 @@ struct SharedMemory *create_shared_memory() {
     return shared_mem;
 }
 
-
+// Function to create and initialize shared memory for command history
 struct SharedHistory *create_shared_history() {
     int shm_fd;
     struct SharedHistory *shared_history;
@@ -86,7 +87,7 @@ struct SharedHistory *create_shared_history() {
     shared_history->index_pointer = 0;
     return shared_history;
 }
-
+// Signal handler for the shell
 void shell_signal_handler(int signum)
 {
     if (signum == SIGALRM)
@@ -108,13 +109,13 @@ void shell_signal_handler(int signum)
 }
 struct SharedHistory *shared_history;
 struct SharedMemory *shared_mem;
-
+// Calculate the wait time based on start and end times
 long int calculate_wait_time(struct timeval start_time, struct timeval end_time) {
     long int start_time_ms = start_time.tv_sec * 1000 + start_time.tv_usec / 1000;
     long int end_time_ms = end_time.tv_sec * 1000 + end_time.tv_usec / 1000;
     return end_time_ms - start_time_ms ;
 }
-
+// Function to print the command history
 void i_will_print_history(){
     int number_of_inputs=shared_history->index_pointer;
     printf("%d\n",number_of_inputs);
@@ -133,7 +134,7 @@ void i_will_print_history(){
         printf("--------------------\n");
     }
 }
-
+// Function to terminate the shell
 void terminator(){
     start_loop=false;
     shared_mem->terminating_flag=1;
@@ -148,7 +149,7 @@ void terminator(){
     shm_unlink("/my_shared_history");
     exit(0);
 }
-
+//main fucn here
 int main(int argc, char **argv)
 {
     if (argc != 3)
