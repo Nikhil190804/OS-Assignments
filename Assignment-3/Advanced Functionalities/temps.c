@@ -37,6 +37,7 @@ struct SharedMemory
     char strings[MAX_STRINGS][MAX_STRING_LENGTH];
     int index;
     int terminating_flag;
+    int priority[MAX_STRINGS];
 };
 
 struct SharedHistory
@@ -249,6 +250,38 @@ int find_valid_index_in_shared_history(pid_t item)
     return -1;
 }
 
+int max_priority(int priorities[], int size) {
+    int max_val = -1;
+    int max_idx = -1;
+
+    for (int i = 0; i < size; i++) {
+        if (priorities[i] != -1 && (max_idx == -1 || priorities[i] > max_val)) {
+            max_val = priorities[i];
+            max_idx = i;
+        }
+    }
+
+    return max_idx;
+}
+
+
+void priority(char strings[][MAX_STRING_LENGTH], int priorities[], int size, char result[MAX_STRINGS][MAX_STRING_LENGTH]) {
+    int i = 0;
+
+    while (i < MAX_STRINGS) {
+        int max_idx = max_priority(priorities, size);
+
+        if (max_idx == -1) {
+            break;
+        }
+
+        priorities[max_idx] = -1;
+        strcpy(result[i], strings[max_idx]);
+        i++;
+    }
+}
+
+
 struct SharedMemory *shared_mem;
 int main(int argc, char **argv)
 {
@@ -276,7 +309,7 @@ int main(int argc, char **argv)
     while (true)
     {
         if (start_now == 1)
-        {
+        {   
             int number_of_strings = shared_mem->index;
             printf("index val in shared: %d", shared_mem->index);
             while (true)
@@ -289,7 +322,9 @@ int main(int argc, char **argv)
                     break;
                 }
                 // add check for data valid in shared_mem
-                char *item = shared_mem->strings[var];
+                char result[MAX_STRINGS][MAX_STRING_LENGTH];
+                priority(shared_mem->strings, shared_mem->priority, MAX_STRINGS, result);
+                char *item = result[var];
                 printf("i am var: %d\n", var);
                 printf("%s\n", item);
                 struct my_history entry;
