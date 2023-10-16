@@ -102,9 +102,6 @@ void shell_signal_handler(int signum)
     if (signum == SIGALRM)
     {
         alarm_triggered = 1;
-
-        printf("\ni am called:%d\n", scheduler_pid);
-
         kill(scheduler_pid, SIGCONT);
         pause();
     }
@@ -134,7 +131,6 @@ long int calculate_wait_time(struct timeval start_time, struct timeval end_time)
 void i_will_print_history()
 {
     int number_of_inputs = shared_history->index_pointer;
-    printf("%d\n", number_of_inputs);
     printf("---------------History---------------\n");
     for (int i = 0; i < number_of_inputs; i++)
     {
@@ -188,7 +184,7 @@ int main(int argc, char **argv)
     scheduler_pid = fork();
     if (scheduler_pid == 0)
     {
-        execlp("./temps", "./temps", argv[1], argv[2], NULL);
+        execlp("./scheduler", "./scheduler", argv[1], argv[2], NULL);
         printf("Failed to start!!!!!\n");
         exit(1);
     }
@@ -252,8 +248,6 @@ int main(int argc, char **argv)
             strcpy(shared_mem->strings[ind], job_name);
             shared_mem->priority[ind]=job_time;
             shared_mem->index++;
-            printf("%s...\n", shared_mem->strings[ind]);
-            printf("%d...\n",shared_mem->priority[ind]);
             if (strcmp(input, "exit") == 0)
             {
                 /*munmap(shared_mem, sizeof(struct SharedMemory));
@@ -273,5 +267,4 @@ int main(int argc, char **argv)
     }
     munmap(shared_mem, SHARED_MEM_SIZE);
     shm_unlink("/my_shared_memory");
-    printf("parent here %d", getpid());
 }

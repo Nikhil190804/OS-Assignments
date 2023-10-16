@@ -92,9 +92,6 @@ void shell_signal_handler(int signum)
     if (signum == SIGALRM)
     {   
         alarm_triggered = 1;
-        
-        printf("\ni am called:%d\n", scheduler_pid);
-        
         kill(scheduler_pid, SIGCONT);
         pause();
     }
@@ -123,8 +120,6 @@ void i_will_print_history(){
     printf("%d\n",number_of_inputs);
     printf("---------------History---------------\n");
     for(int i=0;i<number_of_inputs;i++){
-        //pid_t t=shared_history->array[i]->my_pid;
-        //printf("%d\n",t);
         if(shared_history->array[i].flag==-1){
             //valid hi nhi h
             continue;
@@ -171,7 +166,7 @@ int main(int argc, char **argv)
     scheduler_pid = fork();
     if (scheduler_pid == 0)
     {
-        execlp("./temps", "./temps", argv[1], argv[2], NULL);
+        execlp("./scheduler", "./scheduler", argv[1], argv[2], NULL);
         printf("Failed to start!!!!!\n");
         exit(1);
     }
@@ -189,6 +184,7 @@ int main(int argc, char **argv)
     shared_mem = create_shared_memory();
     shared_history = create_shared_history();
     shared_mem->index=0;
+    printf("\nWelcome to Shell .....\n\n");
     while (start_loop)
     {
         if (alarm_triggered == 1)
@@ -210,7 +206,7 @@ int main(int argc, char **argv)
             {
                 input[input_length - 1] = '\0';
             }
-            /*char *command[2000];
+            char *command[2000];
             char *token = strtok(input, " ");
             // Split by spaces and newline characters
             int count = 0;
@@ -218,29 +214,16 @@ int main(int argc, char **argv)
             {
                 command[count++] = token;
                 token = strtok(NULL, " \n");
-            }*/
+            }
             int ind=shared_mem->index;
-            strcpy(shared_mem->strings[ind],input);
+            strcpy(shared_mem->strings[ind],command[1]);
             
             shared_mem->index++;
-            printf("%s...\n",shared_mem->strings[ind]);
             if(strcmp(input,"exit")==0){
-                /*munmap(shared_mem, sizeof(struct SharedMemory));
-                shm_unlink("/my_shared_memory");
-                start_loop=false;
-                i_will_print_history();
-                kill(scheduler_pid,SIGCONT);
-                //usleep(100);
-                kill(scheduler_pid,SIGTERM);
-                //sleep(1);
-                munmap(shared_history,sizeof(struct SharedHistory));
-                shm_unlink("/my_shared_history");
-                exit(0);*/
                 terminator();
             }
         }
     }
-    munmap(shared_mem, SHARED_MEM_SIZE);
+    munmap(shared_mem, sizeof(struct SharedMemory));
     shm_unlink("/my_shared_memory");
-    printf("parent here %d", getpid());
 }

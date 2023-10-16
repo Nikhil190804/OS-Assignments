@@ -18,13 +18,32 @@
 
 volatile sig_atomic_t start_now = 0;
 volatile sig_atomic_t var = 0;
+
 int NCPU = 0;
 int TSLICE = 0;
+
+struct my_history
+{
+    char my_name[MAX_STRING_LENGTH];
+    pid_t my_pid;
+    long int execution_time;
+    struct timeval start_time;
+    struct timeval end_time;
+    int flag;
+};
 
 struct SharedMemory
 {
     char strings[MAX_STRINGS][MAX_STRING_LENGTH];
     int index;
+    int terminating_flag;
+    int priority[MAX_STRINGS];
+};
+
+struct SharedHistory
+{
+    struct my_history array[MAX_STRINGS];
+    int index_pointer;
 };
 
 typedef struct
@@ -52,11 +71,15 @@ int isStringQueueFull(StringQueue *queue)
     return (queue->rear - queue->front) >= MAX_STRINGS - 1;
 }
 
+int countStringQueue(StringQueue *queue)
+{
+    return (queue->rear - queue->front + 1);
+}
+
 void enqueueString(StringQueue *queue, pid_t item)
 {
     if (isStringQueueFull(queue))
     {
-        printf("String Queue is full. Cannot enqueue.\n");
         return;
     }
 
@@ -68,7 +91,6 @@ pid_t dequeueString(StringQueue *queue)
 {
     if (isStringQueueEmpty(queue))
     {
-        printf("String Queue is empty. Cannot dequeue.\n");
         return 0;
     }
 
@@ -84,7 +106,7 @@ struct SharedMemory *access_shared_memory()
     shm_fd = shm_open("/my_shared_memory", O_RDWR, 0666);
     if (shm_fd == -1)
     {
-        perror("shm_open");
+        perror("my_shared_memory : shm_open");
         exit(1);
     }
     shared_mem = (struct SharedMemory *)mmap(0, sizeof(struct SharedMemory), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
@@ -93,34 +115,106 @@ struct SharedMemory *access_shared_memory()
         perror("mmap");
         exit(1);
     }
+    shared_mem->terminating_flag = 0;
     return shared_mem;
 }
 
+struct SharedHistory *create_shared_history()
+{
+    int shm_fd;
+    struct SharedHistory *shared_history;
+    shm_fd = shm_open("/my_shared_history", O_CREAT | O_RDWR, 0666);
+    if (shm_fd == -1)
+    {
+        perror("my_shared_history : shm_open");
+        exit(1);
+    }
+    if (ftruncate(shm_fd, sizeof(struct SharedHistory)) == -1)
+    {
+        perror("ftruncate");
+        exit(1);
+    }
+    shared_history = (struct SharedHistory *)mmap(0, sizeof(struct SharedHistory), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    if (shared_history == MAP_FAILED)
+    {
+        perror("mmap");
+        exit(1);
+    }
+
+    shared_history->index_pointer = 0;
+    return shared_history;
+}
+
 struct SharedMemory *shared_mem;
-StringQueue *queue ;
+StringQueue *queue;
 StringQueue *remaining_jobs;
+struct SharedHistory *shared_history;
+pid_t my_parent;
 
 void memory_clear(struct SharedMemory *shared_mem)
 {
     munmap(shared_mem, sizeof(struct SharedMemory));
     free(queue);
     free(remaining_jobs);
-    free(shared_mem);
     return;
+}
+
+void get_current_time(struct timeval *current_time)
+{
+    gettimeofday(current_time, NULL);
+}
+
+void check_for_more_jobs()
+{
+    if (isStringQueueEmpty(queue))
+    {
+        return;
+    }
+    else
+    {
+        int num = countStringQueue(queue);
+        for (int i = 0; i < num; i++)
+        {
+            pid_t child_pid = dequeueString(queue);
+            int status;
+            kill(child_pid, SIGCONT);
+            int result = waitpid(child_pid, &status,0);
+            if (result == child_pid)
+            {
+                if (WIFEXITED(status))
+                {
+                    printf("Child process with pid: %d exited with status: %d\n",child_pid, WEXITSTATUS(status));
+                }
+                else
+                {
+                    printf("Child process with pid: %d terminated abnormally\n",child_pid);
+                }
+            }
+            else{
+                ;
+            }
+        }
+    }
 }
 
 void signal_handler(int signum)
 {
     if (signum == SIGCONT)
     {
-        printf("\nscheduler here...\n");
-        start_now = 1;
-        var = 0;
+        if (shared_mem->terminating_flag == 0)
+        {
+            start_now = 1;
+            var = 0;
+        }
     }
     else if (signum == SIGTERM)
     {
-        printf("now terminating scheduler..\n");
+        check_for_more_jobs();
+        usleep(10);
         memory_clear(shared_mem);
+        munmap(shared_history, sizeof(struct SharedHistory));
+        shm_unlink("/my_shared_memory");
+        shm_unlink("/my_shared_history");
         exit(0);
     }
 }
@@ -129,14 +223,58 @@ pid_t peekString(StringQueue *queue)
 {
     if (isStringQueueEmpty(queue))
     {
-        printf("String Queue is empty. Cannot peek.\n");
         return 0;
     }
 
     return queue->data[queue->front];
 }
 
+int find_valid_index_in_shared_history(pid_t item)
+{
+    int number_of_items = shared_history->index_pointer;
+    for (int i = 0; i < number_of_items; i++)
+    {
+        if (shared_history->array[i].my_pid == item)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
 
+int max_priority(int priorities[], int size) {
+    int max_val = -1;
+    int max_idx = -1;
+
+    for (int i = 0; i < size; i++) {
+        if (priorities[i] != -1 && (max_idx == -1 || priorities[i] > max_val)) {
+            max_val = priorities[i];
+            max_idx = i;
+        }
+    }
+
+    return max_idx;
+}
+
+
+void priority(char strings[][MAX_STRING_LENGTH], int priorities[], int size, char result[MAX_STRINGS][MAX_STRING_LENGTH]) {
+    int i = 0;
+
+    while (i < MAX_STRINGS) {
+        int max_idx = max_priority(priorities, size);
+
+        if (max_idx == -1) {
+            break;
+        }
+
+        priorities[max_idx] = -1;
+        strcpy(result[i], strings[max_idx]);
+        i++;
+    }
+}
+
+
+struct SharedMemory *shared_mem;
 int main(int argc, char **argv)
 {
     if (argc != 3)
@@ -146,23 +284,21 @@ int main(int argc, char **argv)
     }
     NCPU = atoi(argv[1]);
     TSLICE = atoi(argv[2]);
-    struct sigaction signal;
-    signal.sa_handler = signal_handler;
-    sigaction(SIGCONT, &signal, NULL);
-    sigaction(SIGTERM, &signal, NULL);
-    pid_t my_parent = getppid();
-    printf("%d...\n", my_parent);
+    struct sigaction signal_scheduler;
+    signal_scheduler.sa_handler = signal_handler;
+    sigaction(SIGCONT, &signal_scheduler, NULL);
+    sigaction(SIGTERM, &signal_scheduler, NULL);
+    my_parent = getppid();
     shared_mem = access_shared_memory();
-    printf("f\n");
+    shared_history = create_shared_history();
     queue = createStringQueue();
     remaining_jobs = createStringQueue();
-    printf("%d::%d\n", NCPU, TSLICE);
+    setsid();
     while (true)
     {
         if (start_now == 1)
         {   
             int number_of_strings = shared_mem->index;
-            printf("index val in shared: %d",shared_mem->index);
             while (true)
             {
 
@@ -173,25 +309,40 @@ int main(int argc, char **argv)
                     break;
                 }
                 // add check for data valid in shared_mem
-                char *item = shared_mem->strings[var];
-                printf("i am var: %d\n", var);
-                printf("%s\n", item);
+                char result[MAX_STRINGS][MAX_STRING_LENGTH];
+                priority(shared_mem->strings, shared_mem->priority, MAX_STRINGS, result);
+                char *item = result[var];
+                struct my_history entry;
+                // entry = (struct my_history *)malloc(sizeof(struct my_history));
                 pid_t new_child = fork();
                 if (new_child == 0)
-                {   
+                {
+                    signal(SIGCONT, SIG_DFL);
+                    usleep(10000);
                     execlp(item, item, NULL);
-                    printf("Failed to fork a process!!!!!\n");
+                    perror("error here: %s");
+                    printf("Failed to fork a process!!!!!187\n");
                     exit(1);
                 }
-                else if (new_child < 0)
+                else if (new_child > 0)
                 {
-                    printf("Failed to fork a process!!!!!\n");
+                    usleep(10000);
+                    kill(new_child, SIGSTOP);
                 }
                 else
                 {
-                    kill(new_child, SIGSTOP);
+                    printf("Failed to fork a process!!!!!\n");
                 }
                 enqueueString(queue, new_child);
+                strcpy(entry.my_name, item);
+                entry.my_pid = new_child;
+                entry.execution_time = 0;
+                entry.flag = -1;
+                get_current_time(&entry.start_time);
+                int p = shared_history->index_pointer;
+                shared_history->array[p] = entry;
+                shared_history->index_pointer++;
+                // free(entry);
                 var++;
             }
             while (true)
@@ -203,6 +354,10 @@ int main(int argc, char **argv)
                 else
                 {
                     pid_t old_child = dequeueString(remaining_jobs);
+                    if (old_child == 0)
+                    {
+                        continue;
+                    }
                     enqueueString(queue, old_child);
                 }
             }
@@ -215,39 +370,91 @@ int main(int argc, char **argv)
             else
             {
                 for (int i = 0; i < NCPU; i++)
-                {   
+                {
                     if (isStringQueueEmpty(queue))
                     {
-                        printf("No process to run now.....\n");
-                        start_now = 0;
-                        kill(my_parent, SIGUSR1);
-                        usleep(10000);
+                        // start_now = 0;
+                        continue;
+                        // kill(my_parent, SIGUSR1);
                     }
                     pid_t child_pid = dequeueString(queue);
+                    if (child_pid == 0)
+                    {
+                        continue;
+                    }
                     int status;
                     kill(child_pid, SIGCONT);
                     usleep(1000 * TSLICE);
                     int result = waitpid(child_pid, &status, WNOHANG);
                     if (result == 0)
                     {
-                        printf("need time\n");
                         kill(child_pid, SIGSTOP);
                         enqueueString(remaining_jobs, child_pid);
+                        int updater = find_valid_index_in_shared_history(child_pid);
+                        if (updater != -1)
+                        {
+                            shared_history->array[updater].execution_time += (long int)TSLICE;
+                            get_current_time(&shared_history->array[updater].end_time);
+                            shared_history->array[updater].flag = 0;
+                        }
                     }
                     else if (result == child_pid)
                     {
                         if (WIFEXITED(status))
                         {
-                            printf("Child process exited with status: %d\n", WEXITSTATUS(status));
+                            printf("Child process with pid: %d exited with status: %d\n",child_pid, WEXITSTATUS(status));
+                            int updater = find_valid_index_in_shared_history(child_pid);
+                            if (updater != -1)
+                            {
+                                shared_history->array[updater].execution_time += (long int)TSLICE;
+                                get_current_time(&shared_history->array[updater].end_time);
+                                shared_history->array[updater].flag = 1;
+                            }
+                            else
+                            {
+                                printf("Child with pid: %d Didn't ran successfully!!!!!\n",child_pid);
+                            }
                         }
                         else
                         {
-                            printf("Child process terminated abnormally\n");
+                            printf("Child process with pid: %d terminated abnormally\n",child_pid);
                         }
                     }
                     else
                     {
                         ;
+                    }
+                }
+                if (isStringQueueEmpty(queue))
+                {
+                    // start_now = 0;
+                    // kill(my_parent, SIGUSR1);
+                    ;
+                }
+                else
+                {
+                    int num_of_current_elements = countStringQueue(queue);
+                    if (num_of_current_elements == 0)
+                    {
+                        ;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < num_of_current_elements; i++)
+                        {
+                            if (isStringQueueEmpty(queue))
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                pid_t temp_child = dequeueString(queue);
+                                kill(temp_child, SIGCONT);
+                                usleep(10);
+                                kill(temp_child, SIGSTOP);
+                                enqueueString(queue, temp_child);
+                            }
+                        }
                     }
                 }
                 start_now = 0;
