@@ -33,6 +33,8 @@ void loader_cleanup();
 void load_and_run_elf(char **exe);
 void handle_temp_page_fault(siginfo_t *info);
 void calculate_internal_frag();
+void signal_handler(int signum, siginfo_t *info, void *context);
+bool check_for_valid_seg_fault(siginfo_t *info);
 
 // info for various segments
 int insertion_index = 0;
@@ -234,10 +236,11 @@ int number_of_pages_to_be_allocated(Elf32_Word mem_size_segment)
     return number_of_pages;
 }
 
-void segfault_handler(int signum, siginfo_t *info, void *context)
+void signal_handler(int signum, siginfo_t *info, void *context)
 {
-    // Check if the fault was due to a read or write access
-    if (info->si_code == SEGV_MAPERR)
+    //check for the seg fault here
+    bool result = check_for_valid_seg_fault(info);
+    if (result==true)
     {
         printf("Segmentation fault at address: %p\n", info->si_addr);
         handle_temp_page_fault(info);
@@ -293,6 +296,16 @@ void calculate_internal_frag(){
     total_internal_fragmentation=difference;
 }
 
+//function to check for seg_fault
+bool check_for_valid_seg_fault(siginfo_t *info){
+    if(info->si_code == SEGV_MAPERR){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
 //main here
 int main(int argc, char **argv)
 {
@@ -301,10 +314,10 @@ int main(int argc, char **argv)
         printf("Provide Correct Arguments!!!!! : %s \n", argv[0]);
         exit(1);
     }
-    struct sigaction sa;
-    sa.sa_sigaction = segfault_handler;
-    sa.sa_flags = SA_SIGINFO;
-    sigaction(SIGSEGV, &sa, NULL);
+    struct sigaction signal;
+    signal.sa_sigaction = signal_handler;
+    signal.sa_flags = SA_SIGINFO;
+    sigaction(SIGSEGV, &signal, NULL);
     // signal(SIGSEGV, handle_temp_page_fault);
     load_and_run_elf(argv);
     loader_cleanup();
