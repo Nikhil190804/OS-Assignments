@@ -16,22 +16,23 @@
 #define MAX_STRINGS 1000
 #define MAX_STRING_LENGTH 100
 
-volatile sig_atomic_t start_now = 0;
-volatile sig_atomic_t var = 0;
+volatile sig_atomic_t start_now = 0;    // A flag indicating if it's time to start processing jobs
+volatile sig_atomic_t var = 0;          // A counter to keep track of the current job
 
-int NCPU = 0;
-int TSLICE = 0;
+int NCPU = 0;       // Number of available CPU cores
+int TSLICE = 0;     // Time slice for each job
 
+// A struct to store information about the executed processes
 struct my_history
 {
-    char my_name[MAX_STRING_LENGTH];
-    pid_t my_pid;
-    long int execution_time;
-    struct timeval start_time;
-    struct timeval end_time;
+    char my_name[MAX_STRING_LENGTH];    // The command to be executed
+    pid_t my_pid;                       //process pid
+    long int execution_time;       // execution time
+    struct timeval start_time;      //start time
+    struct timeval end_time;        //end time
     int flag;
 };
-
+// A struct to hold shared memory containing job information
 struct SharedMemory
 {
     char strings[MAX_STRINGS][MAX_STRING_LENGTH];
@@ -39,20 +40,20 @@ struct SharedMemory
     int terminating_flag;
     int priority[MAX_STRINGS];
 };
-
+// A struct to store the history of executed jobs
 struct SharedHistory
 {
     struct my_history array[MAX_STRINGS];
     int index_pointer;
 };
-
+// Definition of a string queue for managing job processes
 typedef struct
 {
     pid_t data[MAX_STRINGS];
     int front;
     int rear;
 } StringQueue;
-
+// Function to create a new string queue
 StringQueue *createStringQueue()
 {
     StringQueue *queue = (StringQueue *)malloc(sizeof(StringQueue));
@@ -60,22 +61,22 @@ StringQueue *createStringQueue()
     queue->rear = -1;
     return queue;
 }
-
+// Function to check if the string queue is empty
 int isStringQueueEmpty(StringQueue *queue)
 {
     return queue->front > queue->rear;
 }
-
+// Function to check if the string queue is full
 int isStringQueueFull(StringQueue *queue)
 {
     return (queue->rear - queue->front) >= MAX_STRINGS - 1;
 }
-
+// Function to get the count of elements in the string queue
 int countStringQueue(StringQueue *queue)
 {
     return (queue->rear - queue->front + 1);
 }
-
+// Function to dequeue a process ID from the string queue
 void enqueueString(StringQueue *queue, pid_t item)
 {
     if (isStringQueueFull(queue))
@@ -86,7 +87,7 @@ void enqueueString(StringQueue *queue, pid_t item)
     queue->rear++;
     queue->data[queue->rear] = item;
 }
-
+// Function to access the shared memory for job data
 pid_t dequeueString(StringQueue *queue)
 {
     if (isStringQueueEmpty(queue))
@@ -98,7 +99,7 @@ pid_t dequeueString(StringQueue *queue)
     queue->front++;
     return item;
 }
-
+// Function to create shared memory for job history
 struct SharedMemory *access_shared_memory()
 {
     int shm_fd;
@@ -144,13 +145,13 @@ struct SharedHistory *create_shared_history()
     shared_history->index_pointer = 0;
     return shared_history;
 }
-
+// Global variables for shared memory, queues, and the parent process ID
 struct SharedMemory *shared_mem;
 StringQueue *queue;
 StringQueue *remaining_jobs;
 struct SharedHistory *shared_history;
 pid_t my_parent;
-
+// Function to release shared memory and free allocated memory
 void memory_clear(struct SharedMemory *shared_mem)
 {
     munmap(shared_mem, sizeof(struct SharedMemory));
@@ -158,12 +159,12 @@ void memory_clear(struct SharedMemory *shared_mem)
     free(remaining_jobs);
     return;
 }
-
+// Function to get the current time
 void get_current_time(struct timeval *current_time)
 {
     gettimeofday(current_time, NULL);
 }
-
+// Function to check for more jobs and continue executing them
 void check_for_more_jobs()
 {
     if (isStringQueueEmpty(queue))
@@ -197,6 +198,7 @@ void check_for_more_jobs()
     }
 }
 
+// Signal handler for SIGCONT and SIGTERM
 void signal_handler(int signum)
 {
     if (signum == SIGCONT)
@@ -219,6 +221,7 @@ void signal_handler(int signum)
     }
 }
 
+// Function to peek at the front of the string queue
 pid_t peekString(StringQueue *queue)
 {
     if (isStringQueueEmpty(queue))
@@ -229,6 +232,7 @@ pid_t peekString(StringQueue *queue)
     return queue->data[queue->front];
 }
 
+// Function to find the index of a process in the shared history
 int find_valid_index_in_shared_history(pid_t item)
 {
     int number_of_items = shared_history->index_pointer;
@@ -242,6 +246,7 @@ int find_valid_index_in_shared_history(pid_t item)
     return -1;
 }
 
+// Function to find the index with the highest priority
 int max_priority(int priorities[], int size) {
     int max_val = -1;
     int max_idx = -1;
@@ -256,7 +261,7 @@ int max_priority(int priorities[], int size) {
     return max_idx;
 }
 
-
+// Function to prioritize job commands
 void priority(char strings[][MAX_STRING_LENGTH], int priorities[], int size, char result[MAX_STRINGS][MAX_STRING_LENGTH]) {
     int i = 0;
 
@@ -275,6 +280,8 @@ void priority(char strings[][MAX_STRING_LENGTH], int priorities[], int size, cha
 
 
 struct SharedMemory *shared_mem;
+
+//main function
 int main(int argc, char **argv)
 {
     if (argc != 3)

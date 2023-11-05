@@ -1,0 +1,35 @@
+# Design Document: ELF Loader
+
+## Purpose
+The ELF Loader is designed to load and execute ELF binary files. It handles memory allocation, segmentation faults, and provides information about memory usage.
+
+## Functional Overview
+1. The loader reads an ELF binary file and extracts essential information from its headers.
+2. It sets up a signal handler for segmentation faults (SIGSEGV) to handle temporary page faults.
+3. When a segmentation fault occurs, the handler identifies the faulting address, maps the corresponding segment to memory, and continues execution.
+4. The loader calculates statistics related to memory usage, such as page faults, page allocations, and internal fragmentation.
+5. The loader prints the statistics to the console.
+
+## Code Structure
+The code is organized into several functions:
+
+1. `loader_cleanup()`: Cleans up allocated memory and closes the file descriptor. This function is called at the end of the program.
+
+2. `load_and_run_elf(char **exe)`: Loads and executes the ELF binary file. It reads the ELF header and iterates over program headers to map segments to memory.
+
+3. `handle_temp_page_fault(siginfo_t *info)`: Handles temporary page faults by mapping the faulting segment to memory. It calculates and tracks statistics for page faults and internal fragmentation.
+
+4. `number_of_pages_to_be_allocated(Elf32_Word mem_size_segment)`: Calculates the number of pages needed to allocate memory for a segment.
+
+5. `segfault_handler(int signum, siginfo_t *info, void *context)`: The signal handler for segmentation faults. It checks if the fault is due to a read or write access and calls `handle_temp_page_fault` accordingly.
+
+6. `main(int argc, char **argv)`: The entry point of the program. It performs command-line argument validation, sets up the SIGSEGV signal handler, calls `load_and_run_elf`, and finally prints memory statistics.
+
+## Error Handling
+The code includes error handling for file opening, reading, and memory mapping. If any error occurs, the program exits with a status code of 1.
+
+## Output
+The program will output statistics regarding page faults, page allocations, and internal fragmentation after loading and executing the ELF binary.
+
+## Conclusion
+The ELF Loader provides a means to load and execute ELF binary files while monitoring memory usage. It handles temporary page faults and provides insights into how memory is being used during execution.
