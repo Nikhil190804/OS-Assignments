@@ -1,0 +1,82 @@
+## Introduction
+
+This design document outlines the architecture, components, and functionality of the Scheduler and Shell programs implemented in C. The Scheduler is responsible for managing the execution of tasks, while the Shell serves as an interactive interface for user interaction with the Scheduler.
+
+>>>> Table of Contents
+
+1. Overview
+2. Architecture
+3. Key Components
+4. Functionality
+5. Design Details
+
+>>> 1. Overview
+
+This project consists of two C programs: a Scheduler and a Shell. The Scheduler is designed to efficiently manage the execution of tasks using a simple round-robin scheduling algorithm, while the Shell serves as a user-friendly interface for submitting tasks to the Scheduler and monitoring task execution.
+
+>>> 2. Architecture
+
+The architecture of the Scheduler and Shell programs involves several key components:
+
+- Scheduler Program: This program manages the execution of tasks, allocates them to available CPUs, and ensures fair execution using the round-robin scheduling algorithm. It communicates with the Shell through shared memory.
+
+- Shell Program: The Shell provides a command-line interface for users to submit tasks to the Scheduler. It communicates with the Scheduler through shared memory and accepts user input for command execution.
+
+- Shared Memory: Shared memory facilitates communication between the Scheduler and Shell. It allows the exchange of information such as task details, status, and user commands.
+
+>>> 3. Key Components
+
+>> Scheduler Program
+
+- Scheduling Algorithm: The Scheduler employs a round-robin scheduling algorithm to allocate CPU time fairly to tasks.
+
+- Data Structures: Key data structures include shared memory for communication and queues for managing task execution.
+
+- Signal Handling: The Scheduler handles signals, such as SIGCONT for task continuation and SIGTERM for termination.
+
+>> Shell Program
+
+- User Interface: The Shell provides a user-friendly command-line interface for users to submit tasks and interact with the Scheduler.
+
+- Supported Commands: Users can submit tasks and monitor task status. Supported commands include executing tasks and terminating the Shell.
+
+>>>> 4. Functionality
+
+>>> Scheduler Program
+
+- Executes tasks using a round-robin scheduling algorithm.
+- Manages task execution, status tracking, and fair CPU allocation.
+- Receives user commands from the Shell through shared memory.
+
+>>> Shell Program
+
+- Provides an interactive command-line interface for users.
+- Allows users to submit tasks for execution.
+- Monitors task status and facilitates task submission through shared memory.
+- Gracefully terminates the Shell and the Scheduler upon user command.
+
+>>>> 5. Design Details
+
+>>> Scheduler Program
+
+- Scheduling Algorithm: The Scheduler employs a round-robin scheduling algorithm to allocate CPU time fairly among tasks.
+
+- Shared Memory: Shared memory is used for communication with the Shell. It allows the exchange of task details and user commands.
+
+- Signal Handling: Signal handlers for SIGCONT and SIGTERM are implemented for task management and graceful termination.
+
+>>> Shell Program
+
+- User Interface: The Shell provides a user-friendly command-line interface for task submission and monitoring.
+
+- Supported Commands: Users can submit tasks, monitor task status, and gracefully terminate the Shell.
+
+- Shared Memory: Shared memory is used for communication with the Scheduler, facilitating task submission and status monitoring.
+
+>>> Conclusion
+
+The Scheduler and Shell programs provide a comprehensive solution for task management and user interaction. The round-robin scheduling algorithm ensures fair task execution, while the Shell offers a user-friendly interface for submitting and monitoring tasks.
+
+Contributions:
+Nikhil 2022322 made scheduler  and helped in debugging
+Nikhil 2022321 made shell and did debugging
