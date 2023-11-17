@@ -1,0 +1,55 @@
+Design document for Parallel for Implementation of threads.
+
+Purpose
+The Parallel For Implementation with Pthreads is designed to enable parallel execution of loops using Pthreads in C. It provides the capability to parallelize both single loops and nested loops, offering users the flexibility to define loop bodies and specify the number of threads for parallel execution.
+
+Functional Overview
+1. Single Loop Parallelization: 
+    The program allows users to parallelize a single loop using the parallel_for function.
+    A lambda function is employed to define the loop body, offering flexibility for user-defined operations within the loop.
+
+2. Nested Loop Parallelization:
+    The parallel_for function extends support for nested loops, allowing parallelization of both outer and inner loops.
+    Users can specify the ranges for both loops and provide a lambda function to execute the nested loop body.
+
+3. Thread Management:
+    Pthreads are utilized for multi-threading, with functions to create and join threads.
+    The program dynamically allocates memory for thread data, ensuring proper synchronization during parallel execution.
+
+4. Execution Time Measurement:
+    The program measures the execution time of the parallel_for loops using clock ticks.
+    The time taken for each parallel_for operation is calculated and printed to provide insights into performance.
+
+5. Lambda Demonstration:
+    The main function demonstrates how to pass C lambda expressions as parameters to functions, showcasing the flexibility of using lambdas for user-defined operations.
+
+Code Structure
+The code is organized into several functions and main components:
+
+1. Parallel For Single Loop(): parallel_for_single_loop: Executes a single loop in parallel by creating multiple threads.
+
+2. Parallel For Nested Loops(): parallel_for_nested_loop: Extends parallelization to nested loops, creating threads for both outer and inner loops.
+
+3. Time Measurement: 
+    calculate_time_taken(): Computes the time taken between two clock ticks.
+    print_details(): Prints details about the completion of parallel_for execution and the time taken.
+
+4. Chunk size calculation: 
+    find_proper_chunk: Calculates the proper chunk size for distributing loop iterations among threads.
+    has_extra_index: Checks if there are extra indices, ensuring proper distribution among threads.
+
+5. Demonstration:
+    demonstration: Illustrates how to pass lambda expressions as parameters.
+
+6. Main Function: The main function provides a demonstration of using lambdas and executes user-defined code via the user_main function.
+
+Usage: 
+Users can integrate the provided functions into their C projects to achieve parallelization of loops using Pthreads. The code demonstrates the use of lambda expressions for customizing loop bodies.
+
+Error Handling: 
+Error handling is incorporated for thread creation and joining. If errors occur during these operations, the program exits with an error message.
+
+Conclusion:
+The Parallel For Implementation with Pthreads offers a convenient and customizable solution for parallelizing loops in C. Users can leverage the flexibility of lambda expressions to define their loop bodies while benefiting from the performance gains of parallel execution.
+
+Git Repo Link : https://github.com/Nikhil190804/OS-Assignments
