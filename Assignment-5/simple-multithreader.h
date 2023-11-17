@@ -4,9 +4,22 @@
 #include <stdlib.h>
 #include <cstring>
 #include <pthread.h>
+#include <time.h>
 
 int user_main(int argc, char **argv);
 // function to provide ranges for parallel_for for one loop
+
+double calculate_time_taken(clock_t s,clock_t e){
+  double result;
+  result= ((double)(e-s))/CLOCKS_PER_SEC * 1000.0;
+  return result;
+}
+
+void print_details(double arg){
+  printf("Call for Parallel_for finished.....\n");
+  printf("Time Taken to execute: %f ms\n",arg);
+}
+
 int find_proper_chunk(int low, int high, int thread_count)
 {
   int result;
@@ -50,8 +63,7 @@ void *parallel_for_single_loop(void *data)
   int *index_data = (int *)data;
   int start = index_data[0];
   int end = index_data[1];
-  // printf("%d ..%d\n",start,end);
-  // std::function<void(int)> localLambda = Lambda_for_single_loop;
+  // printf("%d ..%d\n",start,end)
   for (int i = start; i < end; i++)
   {
     Lambda_for_single_loop(i);
@@ -64,7 +76,11 @@ void *parallel_for_single_loop(void *data)
 
 void parallel_for(int low, int high, std::function<void(int)> &&lambda, int numThreads)
 {
+  clock_t starttime;
+  clock_t endtime;
+  starttime=clock();
   Lambda_for_single_loop = lambda;
+  printf("Parallel_for Call Occured.....\n");
   int chunk_size = find_proper_chunk(low, high, numThreads);
   // printf("%d\n",chunk_size);
   pthread_t total_threads[numThreads];
@@ -88,13 +104,25 @@ void parallel_for(int low, int high, std::function<void(int)> &&lambda, int numT
     index_data[0] = start;
     index_data[1] = end;
     // now create a thread and pass it the arguments
-    pthread_create(&total_threads[i], NULL, &parallel_for_single_loop, index_data);
+    int thread_status=pthread_create(&total_threads[i], NULL, &parallel_for_single_loop, index_data);
+    if(thread_status!=0){
+      printf("Error while creating a thread!!!!!\n");
+      exit(1);
+    }
   }
 
   for (int i = 0; i < numThreads; i++)
   {
-    pthread_join(total_threads[i], NULL);
+    int thread_status=pthread_join(total_threads[i], NULL);
+    if(thread_status!=0){
+      printf("Error while waiting for the thread to join to the main thread!!!!!\n");
+      exit(1);
+    }
   }
+  endtime=clock();
+  double answer = calculate_time_taken(starttime,endtime);
+  print_details(answer);
+
 }
 
 // This version of parallel_for is for parallelizing two-dimensional for-loops, i.e., an outter for-i loop and
@@ -104,49 +132,38 @@ void parallel_for(int low, int high, std::function<void(int)> &&lambda, int numT
 void *parallel_for_nested_loop(void *data)
 {
   int *index_data = (int *)data;
-  int start1 = index_data[0];
-  int end1 = index_data[1];
+  int start = index_data[0];
+  int end = index_data[1];
   int nested_start = index_data[2];
   int nested_end = index_data[3];
   // printf("%d.......%d\n",start,end);
   // Lambda_for_nested_loop(0,0);
-  for (int i = start1; i < end1; ++i)
+  for (int i = start; i < end; i++)
   {
-    for (int j = nested_start; j < nested_end; ++j)
+    for (int j = nested_start; j < nested_end; j++)
     {
-      // threadData->lambda(i,j);
       Lambda_for_nested_loop(i, j);
     }
   }
-  /*
-  for(int i=start;i<end;i++){
-    //Lambda_for_nested_loop(nested_low,nested_high);
-    //localLambda(i);
-    //printf("%d.\n",i);
-    for(int j=0;j<size;j++){
-      //printf("inside\n");
-      Lambda_for_nested_loop(i,j);
-    }
-  }*/
   free(data);
   return NULL;
 }
 
 void parallel_for(int low1, int high1, int low2, int high2, std::function<void(int, int)> &&lambda, int numThreads)
 {
+  clock_t starttime;
+  clock_t endtime;
+  starttime=clock();
+  printf("Parallel_for Call Occured.....\n");
   Lambda_for_nested_loop = lambda;
   pthread_t total_threads[numThreads];
-  // int chunk_size = find_proper_chunk(low1,high1,numThreads);
+  
   // printf("%d\n",chunk_size);
   int chunk_size = find_proper_chunk(low1, high1, numThreads);
-  // int chunk_inner = find_proper_chunk(low2,high2,numThreads);
-  // int chunk_size1 = (high1 - low1 + 1) / numThreads;
-  // int chunk_size2 = (high2 - low2 + 1) / numThreads;
   for (int i = 0; i < numThreads; i++)
   {
-    // int start1 = low1 + i * chunk_size1;
-    int start1 = i * chunk_size;
-    int end1 = start1 + chunk_size;
+    int start = i * chunk_size;
+    int end = start + chunk_size;
     if (i == numThreads - 1)
     {
       // last thread to execute
@@ -155,36 +172,36 @@ void parallel_for(int low1, int high1, int low2, int high2, std::function<void(i
       if (valid == true)
       {
         // has extra index
-        end1 += ((high1 - low1) + 1) % numThreads;
+        end += ((high1 - low1) + 1) % numThreads;
       }
     }
-    // int end1 = (i == numThreads - 1) ? high1 : start1 + chunk_size1;
     int nested_start = low2;
     int nested_end = high2;
-    // int start = i*chunk_size;
-    // int end = start+chunk_size;
-    printf("%d..%d\n", start1, end1);
-    /*if(i==numThreads-1){
-      //last thread to execute
-      //check for extra index
-      bool valid = has_extra_index(low1,high1,numThreads);
-      if(valid==true){
-        //has extra index
-        //end+=((high1-low1)+1)%numThreads;
-        printf("%d.....\n",end);
-      }
-    }*/
+    //printf("%d..%d\n", start, end);
     int *index_data = (int *)(malloc(4 * sizeof(int)));
-    index_data[0] = start1;
-    index_data[1] = end1;
+    index_data[0] = start;
+    index_data[1] = end;
     index_data[2] = nested_start;
     index_data[3] = nested_end;
-    pthread_create(&total_threads[i], NULL, &parallel_for_nested_loop, index_data);
+    int thread_status=pthread_create(&total_threads[i], NULL, &parallel_for_nested_loop, index_data);
+    if(thread_status!=0){
+      //error has happened 
+      printf("Error while creating a thread!!!!!\n");
+      exit(1);
+    }
   }
   for (int i = 0; i < numThreads; i++)
   {
-    pthread_join(total_threads[i], NULL);
+    int thread_status=pthread_join(total_threads[i], NULL);
+    if(thread_status!=0){
+      //error has occurred
+      printf("Error while waiting for the thread to join to the main thread!!!!!\n");
+      exit(1);
+    }
   }
+  endtime=clock();
+  double answer = calculate_time_taken(starttime,endtime);
+  print_details(answer);
 }
 
 /* Demonstration on how to pass lambda as parameter.
