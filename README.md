@@ -9,7 +9,6 @@ This repository contains assignments for the Operating Systems (OS) course offer
 *   **Course Name:** Operating Systems
 *   **Institution:** IIIT Delhi (IIITD)
 *   **Target Audience:** 2nd Year B.Tech Students
-*   **Semester/Year:** (Please fill this in if known, e.g., Monsoon 202X / Winter 202X)
 
 ## 📂 Assignments Overview
 
